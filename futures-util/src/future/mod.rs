@@ -103,6 +103,11 @@ mod remote_handle;
 pub use self::remote_handle::{Remote, RemoteHandle};
 
 #[cfg(feature = "std")]
+mod join_handle;
+#[cfg(feature = "std")]
+pub use self::join_handle::{JoinFuture, JoinHandle};
+
+#[cfg(feature = "std")]
 mod shared;
 #[cfg(feature = "std")]
 pub use self::shared::Shared;
@@ -475,6 +480,24 @@ pub trait FutureExt: Future {
         Self: Sized,
     {
         remote_handle::remote_handle(self)
+    }
+
+    /// Turn this future into a future that yields `()` on completion and sends
+    /// its output to another future on a separate task.
+    ///
+    /// This can be used with spawning executors to easily retrieve the result
+    /// of a future executing on a separate task or thread.
+    ///
+    /// The spawned future is *not* aborted when the handle gets dropped.
+    ///
+    /// This method is only available when the `std` feature of this
+    /// library is activated, and it is activated by default.
+    #[cfg(feature = "std")]
+    fn join_handle(self) -> (JoinFuture<Self>, JoinHandle<Self::Output>)
+    where
+        Self: Sized,
+    {
+        join_handle::join_handle(self)
     }
 
     /// Wrap the future in a Box, pinning it.

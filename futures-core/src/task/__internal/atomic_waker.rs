@@ -195,6 +195,12 @@ const REGISTERING: usize = 0b01;
 /// The waker currently registered with the `AtomicWaker` cell is being woken.
 const WAKING: usize = 0b10;
 
+fn clone_waker_from(target: &mut Option<Waker>, source: &Waker) {
+    if !target.as_ref().map(|w| w.will_wake(source)).unwrap_or(false) {
+        *target = Some(source.clone());
+    }
+}
+
 impl AtomicWaker {
     /// Create an `AtomicWaker`.
     pub fn new() -> AtomicWaker {
@@ -263,7 +269,7 @@ impl AtomicWaker {
             WAITING => {
                 unsafe {
                     // Locked acquired, update the waker cell
-                    *self.waker.get() = Some(waker.clone());
+                    clone_waker_from(&mut *self.waker.get(), waker);
 
                     // Release the lock. If the state transitioned to include
                     // the `WAKING` bit, this means that at least one wake has
